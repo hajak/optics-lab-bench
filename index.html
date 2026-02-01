@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optik-Labbet - Interaktivt Ljuslaboratorium</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Welcome Screen -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-content">
+                <h1>Välkommen till Optik-Labbet!</h1>
+                <p class="welcome-intro">Här kommer du lära dig om ljus och optik genom interaktiva experiment.</p>
+
+                <div class="learning-objectives">
+                    <h3>Du kommer att lära dig om:</h3>
+                    <ul>
+                        <li>Reflektionslagen och hur speglar fungerar</li>
+                        <li>Plana, konkava och konvexa speglar</li>
+                        <li>Konvexa och konkava linser</li>
+                        <li>Ljusets brytning och totalreflektion</li>
+                        <li>Prisma och färgspektrum</li>
+                    </ul>
+                </div>
+
+                <div class="lab-overview">
+                    <h3>Laborationerna:</h3>
+                    <div class="lab-cards">
+                        <div class="lab-card">
+                            <span class="lab-number">1</span>
+                            <span class="lab-title">Plan spegel</span>
+                        </div>
+                        <div class="lab-card">
+                            <span class="lab-number">2</span>
+                            <span class="lab-title">Konkav spegel</span>
+                        </div>
+                        <div class="lab-card">
+                            <span class="lab-number">3</span>
+                            <span class="lab-title">Konvex spegel</span>
+                        </div>
+                        <div class="lab-card">
+                            <span class="lab-number">4</span>
+                            <span class="lab-title">Konvex lins</span>
+                        </div>
+                        <div class="lab-card">
+                            <span class="lab-number">5</span>
+                            <span class="lab-title">Konkav lins</span>
+                        </div>
+                        <div class="lab-card">
+                            <span class="lab-number">6</span>
+                            <span class="lab-title">Ljusets brytning</span>
+                        </div>
+                        <div class="lab-card">
+                            <span class="lab-number">7</span>
+                            <span class="lab-title">Prisma & Färger</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="start-btn" id="startBtn">Starta första laborationen</button>
+            </div>
+        </div>
+
+        <!-- Main Lab Interface -->
+        <div class="lab-interface hidden" id="labInterface">
+            <header class="header">
+                <h1 class="logo">Optik-Labbet</h1>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span class="progress-text" id="progressText">Laboration 1/7</span>
+                </div>
+                <button class="theme-toggle" id="themeToggle" aria-label="Växla mörkt läge">&#x1F319;</button>
+            </header>
+
+            <main class="main-content">
+                <!-- Lab 1: Plane Mirror -->
+                <section class="lab-section active" id="plane-mirror-lab">
+                    <div class="lab-header">
+                        <h2>Laboration 1: Plan spegel</h2>
+                    </div>
+                    <div class="guided-panel">
+                        <div class="guide-header">
+                            <span class="guide-icon">&#x1F4A1;</span>
+                            <span class="guide-title" id="guideTitle-plane-mirror">Handledning</span>
+                            <span class="step-indicator" id="stepIndicator-plane-mirror">Steg 1/5</span>
+                        </div>
+                        <div class="guided-content" id="guidedContent-plane-mirror">
+                            <p class="guided-text" id="guidedText-plane-mirror">Välkommen!</p>
+                            <div class="guide-actions">
+                                <button class="nav-btn" id="prevStep-plane-mirror" disabled>&#x2190; Föregående</button>
+                                <button class="nav-btn primary" id="nextStep-plane-mirror">Nästa &#x2192;</button>
+                            </div>
+                        </div>
+                        <div class="free-mode-indicator hidden" id="freeModeIndicator-plane-mirror">
+                            <span>&#x1F3AE; Fritt utforskande - experimentera själv!</span>
+                            <button class="btn-small" id="continueToNext-plane-mirror">Fortsätt till nästa laboration &#x2192;</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="planeMirrorCanvas"></canvas>
+                    </div>
+                    <div class="info-panel">
+                        <h3>Bildens egenskaper</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Typ:</span>
+                                <span class="info-value" id="planeMirrorImageType">Virtuell</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Orientering:</span>
+                                <span class="info-value" id="planeMirrorImageOrientation">Upprätt</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Storlek:</span>
+                                <span class="info-value" id="planeMirrorImageSize">Lika stor</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Förstoring:</span>
+                                <span class="info-value" id="planeMirrorMagnification">1.00x</span>
+                            </div>
+                        </div>
+                        <div class="formula-display">
+                            <strong>Reflektionslagen:</strong> Infallsvinkel = Reflektionsvinkel (θ<sub>i</sub> = θ<sub>r</sub>)
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lab 2: Concave Mirror -->
+                <section class="lab-section" id="concave-mirror-lab">
+                    <div class="lab-header">
+                        <h2>Laboration 2: Konkav spegel (hålspegel)</h2>
+                    </div>
+                    <div class="guided-panel">
+                        <div class="guide-header">
+                            <span class="guide-icon">&#x1F4A1;</span>
+                            <span class="guide-title" id="guideTitle-concave-mirror">Handledning</span>
+                            <span class="step-indicator" id="stepIndicator-concave-mirror">Steg 1/6</span>
+                        </div>
+                        <div class="guided-content" id="guidedContent-concave-mirror">
+                            <p class="guided-text" id="guidedText-concave-mirror">Välkommen!</p>
+                            <div class="guide-actions">
+                                <button class="nav-btn" id="prevStep-concave-mirror" disabled>&#x2190; Föregående</button>
+                                <button class="nav-btn primary" id="nextStep-concave-mirror">Nästa &#x2192;</button>
+                            </div>
+                        </div>
+                        <div class="free-mode-indicator hidden" id="freeModeIndicator-concave-mirror">
+                            <span>&#x1F3AE; Fritt utforskande - experimentera själv!</span>
+                            <button class="btn-small" id="continueToNext-concave-mirror">Fortsätt till nästa laboration &#x2192;</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="concaveMirrorCanvas"></canvas>
+                    </div>
+                    <div class="controls-panel">
+                        <div class="control-group">
+                            <label for="concaveMirrorFocalLength">Brännvidd: <span id="concaveMirrorFocalValue">100</span>px</label>
+                            <input type="range" id="concaveMirrorFocalLength" min="50" max="200" value="100">
+                        </div>
+                    </div>
+                    <div class="info-panel">
+                        <h3>Bildens egenskaper</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Typ:</span>
+                                <span class="info-value" id="concaveMirrorImageType">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Orientering:</span>
+                                <span class="info-value" id="concaveMirrorImageOrientation">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Storlek:</span>
+                                <span class="info-value" id="concaveMirrorImageSize">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Förstoring:</span>
+                                <span class="info-value" id="concaveMirrorMagnification">-</span>
+                            </div>
+                        </div>
+                        <div class="formula-display">
+                            <strong>Spegelformeln:</strong> 1/f = 1/d<sub>o</sub> + 1/d<sub>i</sub>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lab 3: Convex Mirror -->
+                <section class="lab-section" id="convex-mirror-lab">
+                    <div class="lab-header">
+                        <h2>Laboration 3: Konvex spegel (kupig spegel)</h2>
+                    </div>
+                    <div class="guided-panel">
+                        <div class="guide-header">
+                            <span class="guide-icon">&#x1F4A1;</span>
+                            <span class="guide-title" id="guideTitle-convex-mirror">Handledning</span>
+                            <span class="step-indicator" id="stepIndicator-convex-mirror">Steg 1/4</span>
+                        </div>
+                        <div class="guided-content" id="guidedContent-convex-mirror">
+                            <p class="guided-text" id="guidedText-convex-mirror">Välkommen!</p>
+                            <div class="guide-actions">
+                                <button class="nav-btn" id="prevStep-convex-mirror" disabled>&#x2190; Föregående</button>
+                                <button class="nav-btn primary" id="nextStep-convex-mirror">Nästa &#x2192;</button>
+                            </div>
+                        </div>
+                        <div class="free-mode-indicator hidden" id="freeModeIndicator-convex-mirror">
+                            <span>&#x1F3AE; Fritt utforskande - experimentera själv!</span>
+                            <button class="btn-small" id="continueToNext-convex-mirror">Fortsätt till nästa laboration &#x2192;</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="convexMirrorCanvas"></canvas>
+                    </div>
+                    <div class="controls-panel">
+                        <div class="control-group">
+                            <label for="convexMirrorFocalLength">Brännvidd: <span id="convexMirrorFocalValue">100</span>px</label>
+                            <input type="range" id="convexMirrorFocalLength" min="50" max="200" value="100">
+                        </div>
+                    </div>
+                    <div class="info-panel">
+                        <h3>Bildens egenskaper</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Typ:</span>
+                                <span class="info-value" id="convexMirrorImageType">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Orientering:</span>
+                                <span class="info-value" id="convexMirrorImageOrientation">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Storlek:</span>
+                                <span class="info-value" id="convexMirrorImageSize">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Förstoring:</span>
+                                <span class="info-value" id="convexMirrorMagnification">-</span>
+                            </div>
+                        </div>
+                        <div class="formula-display">
+                            <strong>Spegelformeln:</strong> 1/f = 1/d<sub>o</sub> + 1/d<sub>i</sub> (f är negativ för konvex spegel)
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lab 4: Convex Lens -->
+                <section class="lab-section" id="convex-lens-lab">
+                    <div class="lab-header">
+                        <h2>Laboration 4: Konvex lins (samlande lins)</h2>
+                    </div>
+                    <div class="guided-panel">
+                        <div class="guide-header">
+                            <span class="guide-icon">&#x1F4A1;</span>
+                            <span class="guide-title" id="guideTitle-convex-lens">Handledning</span>
+                            <span class="step-indicator" id="stepIndicator-convex-lens">Steg 1/7</span>
+                        </div>
+                        <div class="guided-content" id="guidedContent-convex-lens">
+                            <p class="guided-text" id="guidedText-convex-lens">Välkommen!</p>
+                            <div class="guide-actions">
+                                <button class="nav-btn" id="prevStep-convex-lens" disabled>&#x2190; Föregående</button>
+                                <button class="nav-btn primary" id="nextStep-convex-lens">Nästa &#x2192;</button>
+                            </div>
+                        </div>
+                        <div class="free-mode-indicator hidden" id="freeModeIndicator-convex-lens">
+                            <span>&#x1F3AE; Fritt utforskande - experimentera själv!</span>
+                            <button class="btn-small" id="continueToNext-convex-lens">Fortsätt till nästa laboration &#x2192;</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="convexLensCanvas"></canvas>
+                    </div>
+                    <div class="controls-panel">
+                        <div class="control-group">
+                            <label for="convexLensFocalLength">Brännvidd: <span id="convexLensFocalValue">100</span>px</label>
+                            <input type="range" id="convexLensFocalLength" min="50" max="200" value="100">
+                        </div>
+                    </div>
+                    <div class="info-panel">
+                        <h3>Bildens egenskaper</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Typ:</span>
+                                <span class="info-value" id="convexLensImageType">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Orientering:</span>
+                                <span class="info-value" id="convexLensImageOrientation">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Storlek:</span>
+                                <span class="info-value" id="convexLensImageSize">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Förstoring:</span>
+                                <span class="info-value" id="convexLensMagnification">-</span>
+                            </div>
+                        </div>
+                        <div class="formula-display">
+                            <strong>Linsformeln:</strong> 1/f = 1/d<sub>o</sub> + 1/d<sub>i</sub>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lab 5: Concave Lens -->
+                <section class="lab-section" id="concave-lens-lab">
+                    <div class="lab-header">
+                        <h2>Laboration 5: Konkav lins (spridande lins)</h2>
+                    </div>
+                    <div class="guided-panel">
+                        <div class="guide-header">
+                            <span class="guide-icon">&#x1F4A1;</span>
+                            <span class="guide-title" id="guideTitle-concave-lens">Handledning</span>
+                            <span class="step-indicator" id="stepIndicator-concave-lens">Steg 1/5</span>
+                        </div>
+                        <div class="guided-content" id="guidedContent-concave-lens">
+                            <p class="guided-text" id="guidedText-concave-lens">Välkommen!</p>
+                            <div class="guide-actions">
+                                <button class="nav-btn" id="prevStep-concave-lens" disabled>&#x2190; Föregående</button>
+                                <button class="nav-btn primary" id="nextStep-concave-lens">Nästa &#x2192;</button>
+                            </div>
+                        </div>
+                        <div class="free-mode-indicator hidden" id="freeModeIndicator-concave-lens">
+                            <span>&#x1F3AE; Fritt utforskande - experimentera själv!</span>
+                            <button class="btn-small" id="continueToNext-concave-lens">Fortsätt till nästa laboration &#x2192;</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="concaveLensCanvas"></canvas>
+                    </div>
+                    <div class="controls-panel">
+                        <div class="control-group">
+                            <label for="concaveLensFocalLength">Brännvidd: <span id="concaveLensFocalValue">100</span>px</label>
+                            <input type="range" id="concaveLensFocalLength" min="50" max="200" value="100">
+                        </div>
+                    </div>
+                    <div class="info-panel">
+                        <h3>Bildens egenskaper</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Typ:</span>
+                                <span class="info-value" id="concaveLensImageType">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Orientering:</span>
+                                <span class="info-value" id="concaveLensImageOrientation">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Storlek:</span>
+                                <span class="info-value" id="concaveLensImageSize">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Förstoring:</span>
+                                <span class="info-value" id="concaveLensMagnification">-</span>
+                            </div>
+                        </div>
+                        <div class="formula-display">
+                            <strong>Linsformeln:</strong> 1/f = 1/d<sub>o</sub> + 1/d<sub>i</sub> (f är negativ för konkav lins)
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lab 6: Refraction -->
+                <section class="lab-section" id="refraction-lab">
+                    <div class="lab-header">
+                        <h2>Laboration 6: Ljusets brytning</h2>
+                    </div>
+                    <div class="guided-panel">
+                        <div class="guide-header">
+                            <span class="guide-icon">&#x1F4A1;</span>
+                            <span class="guide-title" id="guideTitle-refraction">Handledning</span>
+                            <span class="step-indicator" id="stepIndicator-refraction">Steg 1/8</span>
+                        </div>
+                        <div class="guided-content" id="guidedContent-refraction">
+                            <p class="guided-text" id="guidedText-refraction">Välkommen!</p>
+                            <div class="guide-actions">
+                                <button class="nav-btn" id="prevStep-refraction" disabled>&#x2190; Föregående</button>
+                                <button class="nav-btn primary" id="nextStep-refraction">Nästa &#x2192;</button>
+                            </div>
+                        </div>
+                        <div class="free-mode-indicator hidden" id="freeModeIndicator-refraction">
+                            <span>&#x1F3AE; Fritt utforskande - experimentera själv!</span>
+                            <button class="btn-small" id="continueToNext-refraction">Fortsätt till nästa laboration &#x2192;</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="refractionCanvas"></canvas>
+                    </div>
+                    <div class="controls-panel">
+                        <div class="control-group">
+                            <label for="refractionMode">Material:</label>
+                            <select id="refractionMode">
+                                <option value="airToGlass">Luft → Glas (in i tätare)</option>
+                                <option value="glassToAir">Glas → Luft (ut ur tätare)</option>
+                                <option value="airToWater">Luft → Vatten</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="refractionAngle">Infallsvinkel: <span id="refractionAngleValue">30</span>°</label>
+                            <input type="range" id="refractionAngle" min="0" max="89" value="30">
+                        </div>
+                    </div>
+                    <div class="info-panel">
+                        <h3>Brytningsdata</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Infallsvinkel:</span>
+                                <span class="info-value" id="refractionIncident">30°</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Brytningsvinkel:</span>
+                                <span class="info-value" id="refractionRefracted">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Kritisk vinkel:</span>
+                                <span class="info-value" id="refractionCritical">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Status:</span>
+                                <span class="info-value" id="refractionStatus">Brytning</span>
+                            </div>
+                        </div>
+                        <div class="formula-display">
+                            <strong>Snells lag:</strong> n<sub>1</sub> · sin(θ<sub>1</sub>) = n<sub>2</sub> · sin(θ<sub>2</sub>)
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lab 7: Prism -->
+                <section class="lab-section" id="prism-lab">
+                    <div class="lab-header">
+                        <h2>Laboration 7: Prisma och färgspektrum</h2>
+                    </div>
+                    <div class="guided-panel">
+                        <div class="guide-header">
+                            <span class="guide-icon">&#x1F4A1;</span>
+                            <span class="guide-title" id="guideTitle-prism">Handledning</span>
+                            <span class="step-indicator" id="stepIndicator-prism">Steg 1/8</span>
+                        </div>
+                        <div class="guided-content" id="guidedContent-prism">
+                            <p class="guided-text" id="guidedText-prism">Välkommen!</p>
+                            <div class="guide-actions">
+                                <button class="nav-btn" id="prevStep-prism" disabled>&#x2190; Föregående</button>
+                                <button class="nav-btn primary" id="nextStep-prism">Nästa &#x2192;</button>
+                            </div>
+                        </div>
+                        <div class="free-mode-indicator hidden" id="freeModeIndicator-prism">
+                            <span>&#x1F3AE; Fritt utforskande - experimentera själv!</span>
+                            <button class="btn-small" id="continueToNext-prism">Avsluta alla laborationer &#x2192;</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="prismCanvas"></canvas>
+                    </div>
+                    <div class="controls-panel">
+                        <div class="control-group">
+                            <label for="prismAngle">Prismavinkel: <span id="prismAngleValue">60</span>°</label>
+                            <input type="range" id="prismAngle" min="30" max="90" value="60">
+                        </div>
+                        <div class="control-group">
+                            <label for="prismLightType">Ljustyp:</label>
+                            <select id="prismLightType">
+                                <option value="white">Vitt ljus</option>
+                                <option value="red">Rött ljus (700nm)</option>
+                                <option value="green">Grönt ljus (550nm)</option>
+                                <option value="blue">Blått ljus (450nm)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="info-panel">
+                        <h3>Ljusets egenskaper</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Fenomen:</span>
+                                <span class="info-value" id="prismPhenomenon">Dispersion</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Brytningsindex (glas):</span>
+                                <span class="info-value" id="prismIndex">1.52</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Mest bryts:</span>
+                                <span class="info-value" id="prismMostBent">Violett</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Minst bryts:</span>
+                                <span class="info-value" id="prismLeastBent">Rött</span>
+                            </div>
+                        </div>
+                        <div class="formula-display">
+                            <strong>Dispersion:</strong> Olika våglängder har olika brytningsindex
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Completion Screen -->
+                <section class="lab-section" id="completion-screen">
+                    <div class="completion-content">
+                        <h2>Grattis! Du har slutfört alla laborationer!</h2>
+                        <p>Du har nu lärt dig om:</p>
+                        <ul class="completion-list">
+                            <li>Reflektionslagen och plana speglar</li>
+                            <li>Konkava och konvexa speglar med brännpunkt och brännvidd</li>
+                            <li>Konvexa och konkava linser</li>
+                            <li>Ljusets brytning, Snells lag och totalreflektion</li>
+                            <li>Dispersion och färgspektrum</li>
+                        </ul>
+                        <div class="completion-buttons">
+                            <button class="btn btn-primary" id="startQuizBtn">Testa dina kunskaper!</button>
+                            <button class="btn" id="restartBtn">Börja om från början</button>
+                            <button class="btn btn-secondary" id="freeExploreBtn">Fortsätt utforska fritt</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Quiz Screen -->
+                <section class="lab-section" id="quiz-screen">
+                    <div class="quiz-content">
+                        <h2>Tänkfrågor om optik</h2>
+                        <p class="quiz-intro">Fundera på dessa frågor för att testa din förståelse. Skriv ner dina svar eller diskutera med någon!</p>
+                        <ol class="quiz-questions">
+                            <li>
+                                <strong>Varför ser du dig själv i en spegel men inte i en vit vägg?</strong>
+                                <p class="hint">Tips: Tänk på skillnaden mellan spegelreflektion och diffus reflektion.</p>
+                            </li>
+                            <li>
+                                <strong>Om du står 2 meter från en plan spegel, hur långt bakom spegeln verkar din spegelbild vara?</strong>
+                                <p class="hint">Tips: Tänk på föremålsavstånd och bildavstånd i plana speglar.</p>
+                            </li>
+                            <li>
+                                <strong>Varför förstoras ditt ansikte när du tittar i en sminkspegel (konkav spegel) på nära håll?</strong>
+                                <p class="hint">Tips: Tänk på var föremålet är i förhållande till brännpunkten.</p>
+                            </li>
+                            <li>
+                                <strong>Varför står det "Objects in mirror are closer than they appear" på bilars sidospeglar?</strong>
+                                <p class="hint">Tips: Sidospeglar är konvexa. Vad händer med bilden i en konvex spegel?</p>
+                            </li>
+                            <li>
+                                <strong>Ett förstoringsglas använder en konvex lins. Varför måste du hålla det nära det du vill förstora?</strong>
+                                <p class="hint">Tips: Vad händer med bilden när föremålet är innanför brännpunkten vs utanför?</p>
+                            </li>
+                            <li>
+                                <strong>Glasögon för närsynthet har konkava linser, medan glasögon för översynthet har konvexa linser. Varför?</strong>
+                                <p class="hint">Tips: Tänk på om ögats lins fokuserar för mycket eller för lite.</p>
+                            </li>
+                            <li>
+                                <strong>När du tittar ner i en pool ser botten ut att vara grundare än den faktiskt är. Varför?</strong>
+                                <p class="hint">Tips: Ljuset bryts när det går från vatten till luft.</p>
+                            </li>
+                            <li>
+                                <strong>Fiberoptiska kablar kan böjas och ljuset följer med runt svängarna. Hur är detta möjligt?</strong>
+                                <p class="hint">Tips: Tänk på totalreflektion och kritiska vinkeln.</p>
+                            </li>
+                            <li>
+                                <strong>Varför ser vi regnbågens färger i just den ordningen (rött överst, violett underst)?</strong>
+                                <p class="hint">Tips: Vilken färg bryts mest? Vilken bryts minst?</p>
+                            </li>
+                            <li>
+                                <strong>Diamanter "glittrar" mer än glas. Vad har detta med brytningsindex att göra?</strong>
+                                <p class="hint">Tips: Diamant har n≈2.4, glas har n≈1.5. Tänk på totalreflektion.</p>
+                            </li>
+                        </ol>
+                        <div class="completion-buttons">
+                            <button class="btn" id="backToCompletionBtn">Tillbaka</button>
+                            <button class="btn btn-secondary" id="quizFreeExploreBtn">Utforska laboratorierna igen</button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/canvas.js"></script>
+    <script src="js/labs.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
