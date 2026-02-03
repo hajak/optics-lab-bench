@@ -55,7 +55,7 @@ const LightBuilderLab = {
         [ElementTypes.PLANE_MIRROR]: { height: 120 },
         [ElementTypes.CONVEX_MIRROR]: { focalLength: 80, height: 120 },
         [ElementTypes.CONCAVE_MIRROR]: { focalLength: 80, height: 120 },
-        [ElementTypes.PRISM]: { size: 80, apexAngle: 60 },
+        [ElementTypes.PRISM]: { size: 80, height: 80, apexAngle: 60 },
         [ElementTypes.LIQUID_BOX]: { width: 100, height: 80, refractiveIndex: 1.33 }
     },
 
@@ -447,7 +447,7 @@ const LightBuilderLab = {
             case ElementTypes.LIGHT_POINT:
                 return 25;
             case ElementTypes.PRISM:
-                return element.properties.size / 2 + 10;
+                return Math.max(element.properties.size, element.properties.height || element.properties.size) / 2 + 10;
             case ElementTypes.LIQUID_BOX:
                 return Math.max(element.properties.width, element.properties.height) / 2 + 10;
             default:
@@ -562,7 +562,7 @@ const LightBuilderLab = {
 
         if (element.properties.height !== undefined) {
             html += `<div class="builder-property-group">
-                <label for="builderHeight">${t('sizeLabel')} <span id="builderHeightValue">${element.properties.height}</span>px</label>
+                <label for="builderHeight">${t('height')} <span id="builderHeightValue">${element.properties.height}</span>px</label>
                 <input type="range" id="builderHeight" min="40" max="250" value="${element.properties.height}">
             </div>`;
         }
@@ -743,7 +743,7 @@ const LightBuilderLab = {
                 CanvasUtils.drawConcaveMirror(ctx, 0, 0, element.properties.height, element.properties.focalLength, this.isDark);
                 break;
             case ElementTypes.PRISM:
-                CanvasUtils.drawPrism(ctx, 0, 0, element.properties.size, element.properties.apexAngle, this.isDark);
+                CanvasUtils.drawPrism(ctx, 0, 0, element.properties.size, element.properties.apexAngle, this.isDark, element.properties.height);
                 break;
             case ElementTypes.LIQUID_BOX:
                 this.drawLiquidBox(element);
@@ -1047,13 +1047,31 @@ const LightBuilderLab = {
             const localY = (hit.u - 0.5) * halfHeight * 2;
             const curvatureAngle = localY / element.properties.focalLength * 0.5;
 
+            // Both mirrors have their reflective surface facing LEFT (at rotation=0)
+            // Concave: curves right, dish faces left
+            // Convex: bulges left, reflective outside faces left
+            // So front-check normal points LEFT for both
+            const frontNormalX = -cos * Math.cos(curvatureAngle) - sin * Math.sin(curvatureAngle);
+            const frontNormalY = -sin * Math.cos(curvatureAngle) + cos * Math.sin(curvatureAngle);
+
+            // Only reflect if ray is hitting the reflective (front/left) side of the mirror
+            const dotProduct = ray.dx * frontNormalX + ray.dy * frontNormalY;
+            if (dotProduct >= 0) {
+                // Ray is hitting the back (non-reflective) side - ignore
+                return;
+            }
+
+            // For reflection calculation, use the actual surface normal
+            // Concave: normal points toward center of curvature (left)
+            // Convex: normal points away from center of curvature (right)
             let normalX, normalY;
             if (element.type === ElementTypes.CONCAVE_MIRROR) {
-                normalX = -cos * Math.cos(curvatureAngle) - sin * Math.sin(curvatureAngle);
-                normalY = -sin * Math.cos(curvatureAngle) + cos * Math.sin(curvatureAngle);
+                normalX = frontNormalX;
+                normalY = frontNormalY;
             } else {
-                normalX = cos * Math.cos(curvatureAngle) + sin * Math.sin(curvatureAngle);
-                normalY = sin * Math.cos(curvatureAngle) - cos * Math.sin(curvatureAngle);
+                // Convex: flip normal for correct reflection physics
+                normalX = -frontNormalX;
+                normalY = -frontNormalY;
             }
 
             hits.push({
@@ -1072,8 +1090,13 @@ const LightBuilderLab = {
         const cos = Math.cos(element.rotation);
         const sin = Math.sin(element.rotation);
 
-        const height = size * Math.sin(apexAngle / 2);
-        const baseHalf = size * Math.cos(apexAngle / 2);
+        const baseHeight = size * Math.sin(apexAngle / 2);
+        const baseHalfWidth = size * Math.cos(apexAngle / 2);
+
+        // Use custom height if provided
+        const height = element.properties.height !== undefined ? element.properties.height : baseHeight;
+        const heightScale = height / baseHeight;
+        const baseHalf = baseHalfWidth * heightScale;
 
         const apex = { x: 0, y: -height / 2 };
         const bottomLeft = { x: -baseHalf, y: height / 2 };

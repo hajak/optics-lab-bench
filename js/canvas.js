@@ -36,14 +36,13 @@ const CanvasUtils = {
 
     drawOpticalAxis(ctx, width, height, isDark) {
         const y = height / 2;
-        ctx.strokeStyle = isDark ? '#555566' : '#cccccc';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = isDark ? '#666677' : '#888888';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(width, y);
         ctx.stroke();
-        ctx.setLineDash([]);
     },
 
     drawArrow(ctx, fromX, fromY, toX, toY, color, lineWidth = 2, dashed = false) {
@@ -361,14 +360,18 @@ const CanvasUtils = {
         this.drawLabel(ctx, label, labelX, labelY, isDark);
     },
 
-    drawPrism(ctx, centerX, centerY, size, angle, isDark) {
+    drawPrism(ctx, centerX, centerY, size, angle, isDark, customHeight = null) {
         const halfAngle = (angle * Math.PI / 180) / 2;
-        const height = size * Math.sin(halfAngle);
+        const baseHeight = size * Math.sin(halfAngle);
         const baseHalf = size * Math.cos(halfAngle);
 
+        // Use custom height if provided, otherwise use calculated height
+        const height = customHeight !== null ? customHeight : baseHeight;
+        const heightScale = height / baseHeight;
+
         const apex = { x: centerX, y: centerY - height / 2 };
-        const bottomLeft = { x: centerX - baseHalf, y: centerY + height / 2 };
-        const bottomRight = { x: centerX + baseHalf, y: centerY + height / 2 };
+        const bottomLeft = { x: centerX - baseHalf * heightScale, y: centerY + height / 2 };
+        const bottomRight = { x: centerX + baseHalf * heightScale, y: centerY + height / 2 };
 
         ctx.fillStyle = isDark ? 'rgba(100, 200, 255, 0.15)' : 'rgba(100, 200, 255, 0.25)';
         ctx.strokeStyle = isDark ? '#64b5f6' : '#1976d2';

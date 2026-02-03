@@ -31,35 +31,35 @@
                 <div class="lab-overview">
                     <h3>Laborationerna:</h3>
                     <div class="lab-cards">
-                        <div class="lab-card">
+                        <div class="lab-card" data-lab-index="0">
                             <span class="lab-number">1</span>
                             <span class="lab-title">Plan spegel</span>
                         </div>
-                        <div class="lab-card">
+                        <div class="lab-card" data-lab-index="1">
                             <span class="lab-number">2</span>
                             <span class="lab-title">Konkav spegel</span>
                         </div>
-                        <div class="lab-card">
+                        <div class="lab-card" data-lab-index="2">
                             <span class="lab-number">3</span>
                             <span class="lab-title">Konvex spegel</span>
                         </div>
-                        <div class="lab-card">
+                        <div class="lab-card" data-lab-index="3">
                             <span class="lab-number">4</span>
                             <span class="lab-title">Konvex lins</span>
                         </div>
-                        <div class="lab-card">
+                        <div class="lab-card" data-lab-index="4">
                             <span class="lab-number">5</span>
                             <span class="lab-title">Konkav lins</span>
                         </div>
-                        <div class="lab-card">
+                        <div class="lab-card" data-lab-index="5">
                             <span class="lab-number">6</span>
                             <span class="lab-title">Ljusets brytning</span>
                         </div>
-                        <div class="lab-card">
+                        <div class="lab-card" data-lab-index="6">
                             <span class="lab-number">7</span>
                             <span class="lab-title">Prisma & Färger</span>
                         </div>
-                        <div class="lab-card">
+                        <div class="lab-card" data-lab-index="7">
                             <span class="lab-number">8</span>
                             <span class="lab-title">Ljusbyggaren</span>
                         </div>
@@ -70,7 +70,10 @@
                     <button class="start-btn" id="startBtn">Starta laborationerna</button>
                     <button class="start-btn start-btn-secondary" id="startFreeformBtn">Fritt byggande</button>
                 </div>
+
+                <p class="disclaimer" id="disclaimerText">Observera: Denna simulation är ett pedagogiskt hjälpmedel och ersätter INTE verkliga laborationer.</p>
             </div>
+            <span class="version-number">v1.02</span>
         </div>
 
         <!-- Main Lab Interface -->
@@ -370,6 +373,10 @@
                     </div>
                     <div class="controls-panel">
                         <div class="control-group">
+                            <label for="prismIncidentAngle">Infallsvinkel: <span id="prismIncidentAngleValue">30</span>°</label>
+                            <input type="range" id="prismIncidentAngle" min="-30" max="65" value="30">
+                        </div>
+                        <div class="control-group">
                             <label for="prismAngle">Prismavinkel: <span id="prismAngleValue">60</span>°</label>
                             <input type="range" id="prismAngle" min="30" max="90" value="60">
                         </div>
@@ -441,11 +448,11 @@
                             <div class="toolbar-section">
                                 <div class="toolbar-title">Linser</div>
                                 <button class="builder-tool-btn" data-tool="convex-lens" title="Konvex lins (samlande)">
-                                    <span class="tool-icon">&#x1F50D;</span>
+                                    <span class="tool-icon">()</span>
                                     <span class="tool-label">Konvex</span>
                                 </button>
                                 <button class="builder-tool-btn" data-tool="concave-lens" title="Konkav lins (spridande)">
-                                    <span class="tool-icon">&#x1F50E;</span>
+                                    <span class="tool-icon">)(</span>
                                     <span class="tool-label">Konkav</span>
                                 </button>
                             </div>
