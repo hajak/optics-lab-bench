@@ -1017,7 +1017,42 @@ const LightBuilderLab = {
     },
 
     intersectPlaneMirror(ray, element, hits) {
-        this.intersectLinearElement(ray, element, hits, 'mirror');
+        const halfHeight = (element.properties.height || 120) / 2;
+        const cos = Math.cos(element.rotation);
+        const sin = Math.sin(element.rotation);
+
+        const p1x = element.x - sin * halfHeight;
+        const p1y = element.y + cos * halfHeight;
+        const p2x = element.x + sin * halfHeight;
+        const p2y = element.y - cos * halfHeight;
+
+        const hit = this.lineLineIntersection(
+            ray.startX, ray.startY, ray.dx, ray.dy,
+            p1x, p1y, p2x - p1x, p2y - p1y
+        );
+
+        if (hit && hit.t > 0 && hit.u >= 0 && hit.u <= 1) {
+            // Normal points to the LEFT of the mirror line (at rotation=0, that's negative x)
+            let normalX = cos;
+            let normalY = sin;
+
+            // Check which side the ray is hitting
+            const dotProduct = ray.dx * normalX + ray.dy * normalY;
+
+            // If dot > 0, ray is coming from the back - block it
+            // If dot < 0, ray is coming from the front - reflect it
+            const hitType = dotProduct < 0 ? 'mirror' : 'blocked';
+
+            hits.push({
+                x: ray.startX + ray.dx * hit.t,
+                y: ray.startY + ray.dy * hit.t,
+                t: hit.t,
+                element: element,
+                normalX: normalX,
+                normalY: normalY,
+                type: hitType
+            });
+        }
     },
 
     intersectLens(ray, element, hits) {
@@ -1029,117 +1064,113 @@ const LightBuilderLab = {
         const halfHeight = (element.properties.height || 120) / 2;
         const focalLength = element.properties.focalLength || 80;
         const isConcave = element.type === ElementTypes.CONCAVE_MIRROR;
-
-        // Mirror curvature parameters (matching the drawing)
         const curvature = focalLength / 2;
-        const curveDepth = curvature * 0.2;  // How much the curve bows
-        const edgeOffset = curvature * 0.3;  // X offset of the endpoints
+
+        // Quadratic Bezier control points in local coordinates (matching canvas.js drawing)
+        // Concave: P0=(-0.3c, -h), P1=(+0.2c, 0), P2=(-0.3c, +h) - bows right, reflective faces left
+        // Convex:  P0=(+0.3c, -h), P1=(-0.2c, 0), P2=(+0.3c, +h) - bows left, reflective faces left
+        const endpointX = isConcave ? -curvature * 0.3 : curvature * 0.3;
+        const controlX = isConcave ? curvature * 0.2 : -curvature * 0.2;
+
+        const P0 = { x: endpointX, y: -halfHeight };
+        const P1 = { x: controlX, y: 0 };
+        const P2 = { x: endpointX, y: halfHeight };
 
         // Transform ray into element's local coordinate system
-        const cos = Math.cos(-element.rotation);
-        const sin = Math.sin(-element.rotation);
-        const localRayX = (ray.startX - element.x) * cos - (ray.startY - element.y) * sin;
-        const localRayY = (ray.startX - element.x) * sin + (ray.startY - element.y) * cos;
-        const localDx = ray.dx * cos - ray.dy * sin;
-        const localDy = ray.dx * sin + ray.dy * cos;
+        const cosNeg = Math.cos(-element.rotation);
+        const sinNeg = Math.sin(-element.rotation);
+        const localRayX = (ray.startX - element.x) * cosNeg - (ray.startY - element.y) * sinNeg;
+        const localRayY = (ray.startX - element.x) * sinNeg + (ray.startY - element.y) * cosNeg;
+        const localDx = ray.dx * cosNeg - ray.dy * sinNeg;
+        const localDy = ray.dx * sinNeg + ray.dy * cosNeg;
 
-        // In local coordinates (rotation=0):
-        // Concave: curve bows RIGHT, endpoints at x = -edgeOffset, reflective side faces LEFT
-        // Convex: curve bows LEFT, endpoints at x = +edgeOffset, reflective side faces LEFT
+        // Find intersection with quadratic Bezier curve
+        // B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
+        // Ray: R(s) = (localRayX + s*localDx, localRayY + s*localDy)
 
-        // Approximate the curve as a parabola: x = a * y^2 + b
-        // For concave: x = (curveDepth / halfHeight^2) * y^2 - edgeOffset
-        // For convex: x = -(curveDepth / halfHeight^2) * y^2 + edgeOffset
+        // Sample the Bezier curve and find intersection
+        let bestT = -1;
+        let bestS = -1;
+        let bestHitX = 0, bestHitY = 0;
 
-        const a = isConcave ? (curveDepth / (halfHeight * halfHeight)) : -(curveDepth / (halfHeight * halfHeight));
-        const b = isConcave ? -edgeOffset : edgeOffset;
+        const numSamples = 50;
+        for (let i = 0; i < numSamples; i++) {
+            const t1 = i / numSamples;
+            const t2 = (i + 1) / numSamples;
 
-        // Solve ray-parabola intersection: x = a*y^2 + b, ray: (localRayX + t*localDx, localRayY + t*localDy)
-        // localRayX + t*localDx = a*(localRayY + t*localDy)^2 + b
-        // localRayX + t*localDx = a*localRayY^2 + 2*a*localRayY*t*localDy + a*t^2*localDy^2 + b
-        // a*localDy^2 * t^2 + (2*a*localRayY*localDy - localDx) * t + (a*localRayY^2 + b - localRayX) = 0
+            // Bezier points at t1 and t2
+            const b1x = (1-t1)*(1-t1)*P0.x + 2*(1-t1)*t1*P1.x + t1*t1*P2.x;
+            const b1y = (1-t1)*(1-t1)*P0.y + 2*(1-t1)*t1*P1.y + t1*t1*P2.y;
+            const b2x = (1-t2)*(1-t2)*P0.x + 2*(1-t2)*t2*P1.x + t2*t2*P2.x;
+            const b2y = (1-t2)*(1-t2)*P0.y + 2*(1-t2)*t2*P1.y + t2*t2*P2.y;
 
-        const A = a * localDy * localDy;
-        const B = 2 * a * localRayY * localDy - localDx;
-        const C = a * localRayY * localRayY + b - localRayX;
+            // Line segment intersection
+            const segDx = b2x - b1x;
+            const segDy = b2y - b1y;
 
-        let t = -1;
+            const denom = localDx * segDy - localDy * segDx;
+            if (Math.abs(denom) < 0.0001) continue;
 
-        if (Math.abs(A) < 0.0001) {
-            // Linear case
-            if (Math.abs(B) > 0.0001) {
-                t = -C / B;
-            }
-        } else {
-            const discriminant = B * B - 4 * A * C;
-            if (discriminant >= 0) {
-                const sqrtD = Math.sqrt(discriminant);
-                const t1 = (-B - sqrtD) / (2 * A);
-                const t2 = (-B + sqrtD) / (2 * A);
+            const s = ((b1x - localRayX) * segDy - (b1y - localRayY) * segDx) / denom;
+            const u = ((b1x - localRayX) * localDy - (b1y - localRayY) * localDx) / denom;
 
-                // Pick the nearest positive t that's within the mirror height
-                const candidates = [t1, t2].filter(ti => {
-                    if (ti <= 0.1) return false;
-                    const hitY = localRayY + ti * localDy;
-                    return Math.abs(hitY) <= halfHeight;
-                });
-
-                if (candidates.length > 0) {
-                    t = Math.min(...candidates);
+            if (s > 0.1 && u >= 0 && u <= 1) {
+                if (bestS < 0 || s < bestS) {
+                    bestS = s;
+                    bestT = t1 + u * (t2 - t1);
+                    bestHitX = localRayX + s * localDx;
+                    bestHitY = localRayY + s * localDy;
                 }
             }
         }
 
-        if (t <= 0.1) return;
+        if (bestS < 0) return;
 
-        const localHitX = localRayX + t * localDx;
-        const localHitY = localRayY + t * localDy;
+        // Calculate tangent at hit point: B'(t) = 2(1-t)(P1-P0) + 2t(P2-P1)
+        const tangentX = 2 * (1 - bestT) * (P1.x - P0.x) + 2 * bestT * (P2.x - P1.x);
+        const tangentY = 2 * (1 - bestT) * (P1.y - P0.y) + 2 * bestT * (P2.y - P1.y);
 
-        // Check if hit is within mirror bounds
-        if (Math.abs(localHitY) > halfHeight) return;
-
-        // Calculate surface normal at hit point
-        // For parabola x = a*y^2 + b, the tangent is (2*a*y, 1), so normal is (1, -2*a*y) normalized
-        const tangentX = 2 * a * localHitY;
-        const tangentY = 1;
-        let localNormalX = tangentY;   // Perpendicular to tangent
-        let localNormalY = -tangentX;
+        // Normal is perpendicular to tangent
+        let localNormalX = -tangentY;
+        let localNormalY = tangentX;
 
         // Normalize
         const normalLen = Math.sqrt(localNormalX * localNormalX + localNormalY * localNormalY);
+        if (normalLen < 0.0001) return;
         localNormalX /= normalLen;
         localNormalY /= normalLen;
 
-        // For both mirror types, the reflective surface faces LEFT (negative x direction)
-        // So the normal pointing toward the reflective side should point LEFT (negative x)
+        // The reflective surface faces LEFT for both mirror types
+        // Concave: dish opens left, normal should point left (negative x) toward incoming light
+        // Convex: bulge faces left, normal should point left (negative x) toward incoming light
         if (localNormalX > 0) {
             localNormalX = -localNormalX;
             localNormalY = -localNormalY;
         }
 
-        // Check if ray is hitting the reflective side (coming from the left, i.e., negative x direction relative to mirror)
+        // Check if ray is coming from the reflective side (from the left)
+        // Ray must be traveling toward the mirror surface (dot product with normal < 0)
         const dotProduct = localDx * localNormalX + localDy * localNormalY;
-        if (dotProduct >= 0) {
-            // Ray is hitting the back (non-reflective) side - block it
-            return;
-        }
 
-        // Transform hit point and normal back to world coordinates
+        // Transform back to world coordinates
         const worldCos = Math.cos(element.rotation);
         const worldSin = Math.sin(element.rotation);
-        const hitX = element.x + localHitX * worldCos - localHitY * worldSin;
-        const hitY = element.y + localHitX * worldSin + localHitY * worldCos;
+        const hitX = element.x + bestHitX * worldCos - bestHitY * worldSin;
+        const hitY = element.y + bestHitX * worldSin + bestHitY * worldCos;
         const normalX = localNormalX * worldCos - localNormalY * worldSin;
         const normalY = localNormalX * worldSin + localNormalY * worldCos;
+
+        // Determine if hitting reflective side (front) or back
+        const hittingFront = dotProduct < 0;
 
         hits.push({
             x: hitX,
             y: hitY,
-            t: t,
+            t: bestS,
             element: element,
             normalX: normalX,
             normalY: normalY,
-            type: 'curved-mirror'
+            type: hittingFront ? 'curved-mirror' : 'blocked'
         });
     },
 
@@ -1319,6 +1350,10 @@ const LightBuilderLab = {
             case 'liquid-box':
                 const liquidRays = this.refractThroughLiquid(ray, hit);
                 outRays.push(...liquidRays);
+                break;
+
+            case 'blocked':
+                // Ray is absorbed - return no outgoing rays
                 break;
         }
 
