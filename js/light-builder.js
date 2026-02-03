@@ -1027,61 +1027,120 @@ const LightBuilderLab = {
 
     intersectCurvedMirror(ray, element, hits) {
         const halfHeight = (element.properties.height || 120) / 2;
-        const cos = Math.cos(element.rotation);
-        const sin = Math.sin(element.rotation);
+        const focalLength = element.properties.focalLength || 80;
+        const isConcave = element.type === ElementTypes.CONCAVE_MIRROR;
 
-        const p1x = element.x - sin * halfHeight;
-        const p1y = element.y + cos * halfHeight;
-        const p2x = element.x + sin * halfHeight;
-        const p2y = element.y - cos * halfHeight;
+        // Mirror curvature parameters (matching the drawing)
+        const curvature = focalLength / 2;
+        const curveDepth = curvature * 0.2;  // How much the curve bows
+        const edgeOffset = curvature * 0.3;  // X offset of the endpoints
 
-        const hit = this.lineLineIntersection(
-            ray.startX, ray.startY, ray.dx, ray.dy,
-            p1x, p1y, p2x - p1x, p2y - p1y
-        );
+        // Transform ray into element's local coordinate system
+        const cos = Math.cos(-element.rotation);
+        const sin = Math.sin(-element.rotation);
+        const localRayX = (ray.startX - element.x) * cos - (ray.startY - element.y) * sin;
+        const localRayY = (ray.startX - element.x) * sin + (ray.startY - element.y) * cos;
+        const localDx = ray.dx * cos - ray.dy * sin;
+        const localDy = ray.dx * sin + ray.dy * cos;
 
-        if (hit && hit.t > 0 && hit.u >= 0 && hit.u <= 1) {
-            const hitX = ray.startX + ray.dx * hit.t;
-            const hitY = ray.startY + ray.dy * hit.t;
+        // In local coordinates (rotation=0):
+        // Concave: curve bows RIGHT, endpoints at x = -edgeOffset, reflective side faces LEFT
+        // Convex: curve bows LEFT, endpoints at x = +edgeOffset, reflective side faces LEFT
 
-            const localY = (hit.u - 0.5) * halfHeight * 2;
-            const curvatureAngle = localY / element.properties.focalLength * 0.5;
+        // Approximate the curve as a parabola: x = a * y^2 + b
+        // For concave: x = (curveDepth / halfHeight^2) * y^2 - edgeOffset
+        // For convex: x = -(curveDepth / halfHeight^2) * y^2 + edgeOffset
 
-            // Both mirrors have their reflective surface facing LEFT (at rotation=0)
-            // Concave: curves right, dish faces left
-            // Convex: bulges left, reflective outside faces left
-            // So front-check normal points LEFT for both
-            const frontNormalX = -cos * Math.cos(curvatureAngle) - sin * Math.sin(curvatureAngle);
-            const frontNormalY = -sin * Math.cos(curvatureAngle) + cos * Math.sin(curvatureAngle);
+        const a = isConcave ? (curveDepth / (halfHeight * halfHeight)) : -(curveDepth / (halfHeight * halfHeight));
+        const b = isConcave ? -edgeOffset : edgeOffset;
 
-            // Only reflect if ray is hitting the reflective (front/left) side of the mirror
-            const dotProduct = ray.dx * frontNormalX + ray.dy * frontNormalY;
-            if (dotProduct >= 0) {
-                // Ray is hitting the back (non-reflective) side - ignore
-                return;
+        // Solve ray-parabola intersection: x = a*y^2 + b, ray: (localRayX + t*localDx, localRayY + t*localDy)
+        // localRayX + t*localDx = a*(localRayY + t*localDy)^2 + b
+        // localRayX + t*localDx = a*localRayY^2 + 2*a*localRayY*t*localDy + a*t^2*localDy^2 + b
+        // a*localDy^2 * t^2 + (2*a*localRayY*localDy - localDx) * t + (a*localRayY^2 + b - localRayX) = 0
+
+        const A = a * localDy * localDy;
+        const B = 2 * a * localRayY * localDy - localDx;
+        const C = a * localRayY * localRayY + b - localRayX;
+
+        let t = -1;
+
+        if (Math.abs(A) < 0.0001) {
+            // Linear case
+            if (Math.abs(B) > 0.0001) {
+                t = -C / B;
             }
+        } else {
+            const discriminant = B * B - 4 * A * C;
+            if (discriminant >= 0) {
+                const sqrtD = Math.sqrt(discriminant);
+                const t1 = (-B - sqrtD) / (2 * A);
+                const t2 = (-B + sqrtD) / (2 * A);
 
-            // For reflection calculation, use the actual surface normal
-            // Concave: normal points toward center of curvature (left)
-            // Convex: normal points away from center of curvature (right)
-            let normalX, normalY;
-            if (element.type === ElementTypes.CONCAVE_MIRROR) {
-                normalX = frontNormalX;
-                normalY = frontNormalY;
-            } else {
-                // Convex: flip normal for correct reflection physics
-                normalX = -frontNormalX;
-                normalY = -frontNormalY;
+                // Pick the nearest positive t that's within the mirror height
+                const candidates = [t1, t2].filter(ti => {
+                    if (ti <= 0.1) return false;
+                    const hitY = localRayY + ti * localDy;
+                    return Math.abs(hitY) <= halfHeight;
+                });
+
+                if (candidates.length > 0) {
+                    t = Math.min(...candidates);
+                }
             }
-
-            hits.push({
-                x: hitX, y: hitY,
-                t: hit.t,
-                element: element,
-                normalX, normalY,
-                type: 'mirror'
-            });
         }
+
+        if (t <= 0.1) return;
+
+        const localHitX = localRayX + t * localDx;
+        const localHitY = localRayY + t * localDy;
+
+        // Check if hit is within mirror bounds
+        if (Math.abs(localHitY) > halfHeight) return;
+
+        // Calculate surface normal at hit point
+        // For parabola x = a*y^2 + b, the tangent is (2*a*y, 1), so normal is (1, -2*a*y) normalized
+        const tangentX = 2 * a * localHitY;
+        const tangentY = 1;
+        let localNormalX = tangentY;   // Perpendicular to tangent
+        let localNormalY = -tangentX;
+
+        // Normalize
+        const normalLen = Math.sqrt(localNormalX * localNormalX + localNormalY * localNormalY);
+        localNormalX /= normalLen;
+        localNormalY /= normalLen;
+
+        // For both mirror types, the reflective surface faces LEFT (negative x direction)
+        // So the normal pointing toward the reflective side should point LEFT (negative x)
+        if (localNormalX > 0) {
+            localNormalX = -localNormalX;
+            localNormalY = -localNormalY;
+        }
+
+        // Check if ray is hitting the reflective side (coming from the left, i.e., negative x direction relative to mirror)
+        const dotProduct = localDx * localNormalX + localDy * localNormalY;
+        if (dotProduct >= 0) {
+            // Ray is hitting the back (non-reflective) side - block it
+            return;
+        }
+
+        // Transform hit point and normal back to world coordinates
+        const worldCos = Math.cos(element.rotation);
+        const worldSin = Math.sin(element.rotation);
+        const hitX = element.x + localHitX * worldCos - localHitY * worldSin;
+        const hitY = element.y + localHitX * worldSin + localHitY * worldCos;
+        const normalX = localNormalX * worldCos - localNormalY * worldSin;
+        const normalY = localNormalX * worldSin + localNormalY * worldCos;
+
+        hits.push({
+            x: hitX,
+            y: hitY,
+            t: t,
+            element: element,
+            normalX: normalX,
+            normalY: normalY,
+            type: 'curved-mirror'
+        });
     },
 
     intersectPrism(ray, element, hits) {
@@ -1228,6 +1287,18 @@ const LightBuilderLab = {
                 outRays.push({
                     startX: hit.x, startY: hit.y,
                     dx: reflected.dx, dy: reflected.dy,
+                    wavelength: ray.wavelength,
+                    color: ray.color,
+                    intensity: ray.intensity * 0.95
+                });
+                break;
+
+            case 'curved-mirror':
+                // Normal is already correctly oriented from intersection calculation
+                const curvedReflected = this.reflect(ray.dx, ray.dy, hit.normalX, hit.normalY);
+                outRays.push({
+                    startX: hit.x, startY: hit.y,
+                    dx: curvedReflected.dx, dy: curvedReflected.dy,
                     wavelength: ray.wavelength,
                     color: ray.color,
                     intensity: ray.intensity * 0.95
